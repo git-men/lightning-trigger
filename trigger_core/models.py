@@ -21,6 +21,7 @@ class Trigger(models.Model):
     summary = models.TextField('api说明', default='')
     event = models.CharField('操作', max_length=20, choices=const.TRIGGER_EVENT_CHOICES)
     disable = models.BooleanField('停用', default=False)
+    condition = JSONField('触发条件',default={})
 
     def __str__(self):
         return '%s object (%s,%s,%s)' % (
@@ -34,9 +35,9 @@ class Trigger(models.Model):
         verbose_name = '触发器'
         verbose_name_plural = '触发器'
 
-
+"""
 class TriggerCondition(models.Model):
-    """触发器条件"""
+    # 触发器条件
 
     trigger = models.OneToOneField(
         Trigger, models.CASCADE, verbose_name='trigger_condition'
@@ -58,7 +59,7 @@ class TriggerCondition(models.Model):
         verbose_name_plural = '触发器条件'
 
         index_together = [('app', 'model')]
-
+"""
 
 class TriggerAction(models.Model):
     '''触发器行为'''

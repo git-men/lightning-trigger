@@ -1,16 +1,17 @@
 import json
 from django.db import transaction
 from django.apps import apps
+from django.core import serializers
+
 
 from api_basebone.core import exceptions
 from api_basebone.restful.serializers import multiple_create_serializer_class
-from ..cache import trigger_cache
+from ..cache import trigger_cache, trigger_list_cache
 from .. import const
 from . import TriggerDriver
 
 from .. import models
 from ..models import Trigger
-from ..models import TriggerCondition
 from ..models import TriggerAction
 
 
@@ -32,9 +33,10 @@ def get_trigger_config(slug):
         raise exceptions.BusinessException(
             error_code=exceptions.OBJECT_NOT_FOUND, error_data=f'找不到对应的trigger：{slug}'
         )
-    expand_fields = ['triggercondition', 'triggeraction_set']
+    expand_fields = [
+        'triggeraction_set'
+    ]
     exclude_fields = {
-        'trigger_core__triggercondition': ['id', 'trigger', 'layer'],
         'trigger_core__triggeraction': ['id', 'trigger'],
     }
 
@@ -59,6 +61,7 @@ def add_trigger(config):
         raise exceptions.BusinessException(error_code=exceptions.SLUG_EXISTS)
 
     save_trigger(config)
+    trigger_list_cache.delete_cache('trigger_list')
 
 
 def update_trigger(id, config):
@@ -104,33 +107,35 @@ def save_trigger(config, id=None):
                 error_data=f'\'operation\': {trigger.event} 不是合法的触发器事件',
             )
 
+        trigger.condition = config.get('condition')
+
         trigger.save()
 
-        save_trigger_condition(trigger, config.get('triggercondition'), is_create)
+       
         save_trigger_action(trigger, config.get('triggeraction'), is_create)
 
         trigger_cache.delete_config(trigger.slug)
 
 
-def save_trigger_condition(trigger: Trigger, condition: dict, is_create):
-    if hasattr(trigger, 'triggercondition'):
-        condition_model = trigger.triggercondition
-    else:
-        condition_model = TriggerCondition()
-        condition_model.trigger = trigger
+# def save_trigger_condition(trigger: Trigger, condition: dict, is_create):
+#     if hasattr(trigger, 'condition'):
+#         condition_model = trigger.condition
+#     else:
+#         condition_model = TriggerCondition()
+#         condition_model.trigger = trigger
 
-    for attr, value in condition.items():
-        if hasattr(condition_model, attr):
-            setattr(condition_model, attr, value)
-    condition_model.save()
+#     for attr, value in condition.items():
+#         if hasattr(condition_model, attr):
+#             setattr(condition_model, attr, value)
+#     condition_model.save()
 
-    try:
-        apps.get_model(condition_model.app, condition_model.model)
-    except LookupError:
-        raise exceptions.BusinessException(
-            error_code=exceptions.PARAMETER_FORMAT_ERROR,
-            error_data=f'{condition_model.app}__{condition_model.model} 不是有效的model',
-        )
+#     try:
+#         apps.get_model(condition_model.app, condition_model.model)
+#     except LookupError:
+#         raise exceptions.BusinessException(
+#             error_code=exceptions.PARAMETER_FORMAT_ERROR,
+#             error_data=f'{condition_model.app}__{condition_model.model} 不是有效的model',
+#         )
 
 
 def save_trigger_action(trigger: Trigger, actions, is_create):
@@ -157,22 +162,39 @@ def save_trigger_action(trigger: Trigger, actions, is_create):
 
         action_model.save()
 
+def check_kwargs(kwargs, condition):
+    ty = True
+    for key in kwargs.keys():
+        if kwargs.get(key, None) != condition.get(key, None):
+            ty = False
+            return
+    return ty
+
+def list_trigger():
+    trigger_list = []
+    cache_trigger_list = trigger_list_cache.get_cache('trigger_list')
+    if cache_trigger_list is None:
+        ls = []
+        for trg in Trigger.objects.values('event','slug').all():
+            ls.append(trg)
+        trigger_list = ls
+        trigger_list_cache.set_cache('trigger_list',json.dumps(trigger_list))
+    else:
+        trigger_list = json.loads(cache_trigger_list)
+    return trigger_list
+
 
 class DBDriver(TriggerDriver):
     def get_trigger_config(self, slug):
         return get_trigger_config(slug)
 
     def list_trigger_config(self, event=None, *args, **kwargs):
-        kw = {f'triggercondition__{k}': v for k, v in kwargs.items()}
-        if event:
-            apis = Trigger.objects.filter(event=event, **kw).values('slug').all()
-        else:
-            apis = Trigger.objects.filter(**kw).values('slug').all()
+        triggers = list_trigger()
         results = []
-        for api in apis:
-            r = get_trigger_config(api['slug'])
-            results.append(r)
-
+        for trg in triggers:
+            r = get_trigger_config(trg['slug'])
+            if not(r["event"] != event) and check_kwargs(kwargs, r["condition"]):        
+                results.append(r)
         return results
 
     def add_trigger(self, config):

@@ -14,7 +14,7 @@ class TriggerPO:
     name = None
     summary = None
     event = None
-    triggercondition = None
+    condition = None
     triggeraction = None
     disable = None
 
@@ -87,7 +87,7 @@ def loadTrigger(config):
             error_data=f'\'operation\': {trigger.event} 不是合法的触发器事件',
         )
 
-    loadTriggerCondition(trigger, config.get('triggercondition'))
+    loadTriggerCondition(trigger, config.get('condition'))
     loadTriggerAction(trigger, config.get('triggeraction'))
     return trigger
 
@@ -97,7 +97,7 @@ def loadTriggerCondition(trigger: TriggerPO, condition: dict):
     for attr, value in condition.items():
         if hasattr(condition_po, attr):
             setattr(condition_po, attr, value)
-    trigger.triggercondition = condition_po
+    trigger.condition = condition_po
 
     try:
         apps.get_model(condition_po.app, condition_po.model)

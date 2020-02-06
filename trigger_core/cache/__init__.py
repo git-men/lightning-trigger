@@ -42,3 +42,4 @@ class TriggerCache(BaseCache):
 
 
 trigger_cache = TriggerCache()
+trigger_list_cache = BaseCache()

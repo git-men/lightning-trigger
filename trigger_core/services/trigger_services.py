@@ -124,7 +124,7 @@ def is_filter_param(value):
 
 
 def check_trigger(request, trigger_po: po.TriggerPO, old_inst, new_inst) -> bool:
-    condition = trigger_po.triggercondition
+    condition = trigger_po.condition
     result = check_filters(request, trigger_po, condition.filters, old_inst, new_inst)
     return result
 
