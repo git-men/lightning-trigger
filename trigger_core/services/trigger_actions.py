@@ -4,7 +4,6 @@ from api_basebone.utils import queryset as queryset_util
 
 
 def convert_fields(fields_config, variables):
-    print('fields config: ', fields_config)
     return {
         f: resolve_expression(exp, variables=variables)
         for f, exp in fields_config.items()
@@ -50,6 +49,5 @@ class Variable:
 
 
 def run_action(conf, **kwargs):
-    print('in run action: ', conf, kwargs)
     ACTIONS[conf.pop('action')](conf, Variable(**kwargs))
     # 不复制直接pop有隐患，当conf为缓存的配置数据的时候，会导致缓存数据的改变。
