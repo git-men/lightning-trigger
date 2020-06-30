@@ -8,15 +8,15 @@ from api_basebone.core import exceptions
 class TriggerPO:
     '''触发器'''
 
-    slug = None
-    app = None
-    model = None
-    name = None
-    summary = None
-    event = None
-    condition = None
-    triggeraction = None
-    disable = None
+    # slug = None
+    # app = None
+    # model = None
+    # name = None
+    # summary = None
+    # event = None
+    # condition = None
+    # triggeraction = None
+    # disable = None
 
     def is_create(self) -> bool:
         return self.event in (
@@ -78,7 +78,7 @@ def loadTrigger(config):
     trigger.disable = config.get('disable', False)
 
     trigger.name = config.get('name', '')
-    trigger.summary = config.get('summary', '')
+    trigger.description = config.get('description', '')
 
     trigger.event = config['event']
     if trigger.event not in const.TRIGGER_EVENTS:

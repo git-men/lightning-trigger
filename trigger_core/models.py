@@ -18,7 +18,7 @@ class Trigger(models.Model):
 
     slug = models.SlugField('标识', max_length=50, unique=True, default=UUID)
     name = models.CharField('名称', max_length=50, default='')
-    summary = models.TextField('api说明', default='')
+    description = models.CharField('说明', max_length=1024, default='')
     event = models.CharField('操作', max_length=20, choices=const.TRIGGER_EVENT_CHOICES)
     disable = models.BooleanField('停用', default=False)
     condition = JSONField('触发条件',default={})

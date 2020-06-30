@@ -92,9 +92,9 @@ def save_trigger(config, id=None):
             """如果没有就用默认值"""
             trigger.name = config['name']
 
-        if 'summary' in config:
+        if 'description' in config:
             """如果没有就用默认值"""
-            trigger.summary = config['summary']
+            trigger.description = config['description']
 
         if 'disable' in config:
             """如果没有就用默认值"""
