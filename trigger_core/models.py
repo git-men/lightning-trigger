@@ -66,10 +66,15 @@ class TriggerAction(models.Model):
 
     trigger = models.ForeignKey(Trigger, models.CASCADE, verbose_name='trigger')
     action = models.CharField('条件类型', max_length=20, choices=const.TRIGGER_ACTION_CHOICES)
+    # 创建记录, 更新记录, 删除记录
     app = models.CharField('app名字', default='', max_length=50)
     model = models.CharField('数据模型名字', default='', max_length=50)
     fields = JSONField('操作的属性', default={}, blank=True)
     filters = JSONField('操作的条件', default=[], blank=True)
+    # 发送邮件
+    subject_template = models.CharField('标题模板', max_length=100, default='')
+    text_template = models.TextField('正文模板', default='')
+    receiver_filters = JSONField('接收者的过滤条件', default=[], blank=True)
 
     class Meta:
         verbose_name = '触发器行为'

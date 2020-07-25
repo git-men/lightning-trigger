@@ -1,6 +1,13 @@
+import smtplib
+from email.mime.text import MIMEText
+from email.header import Header
+from email.utils import formataddr
 from django.apps import apps
+from django.contrib.auth import get_user_model
+
 from api_basebone.services.expresstion import resolve_expression
 from api_basebone.utils import queryset as queryset_util
+from bsm_config.settings import site_setting
 
 
 def convert_fields(fields_config, variables):
@@ -38,6 +45,41 @@ def create(conf, variables):
 def delete(conf, variables):
     model = apps.get_model(conf['app'], conf['model'])
     queryset_util.filter(model.objects, conf['filters'], context=variables).delete()
+
+
+@reg_action
+def send_email(conf, variables):
+    # 批量查找数据库
+    protocol, host, port, tls, need_login, username, password, sender_address, sender_name, staff_model = site_setting[
+        'mail_protocol', 'mail_host', 'mail_port',
+        'start_tls', 'mail_need_login', 'mail_username', 'mail_password',
+        'sender_address', 'sender_name', 'staff_model',
+    ]
+    Client = {'SMTP': smtplib.SMTP, 'SMTP_SSL': smtplib.SMTP_SSL}.get(protocol, None)
+    if Client is None:
+        return
+
+    if not host:
+        return
+    client = Client(host, port or 0)
+
+    if tls:
+        client.starttls()
+
+    if need_login is not False:  # 默认为True
+        if username and password:
+            client.login(username, password)
+
+    msg = MIMEText(conf['text_template'].format(**variables.__dict__), 'plain', 'utf-8')
+    msg['Subject'] = conf['subject_template'].format(**variables.__dict__)
+    msg['From'] = formataddr((Header(sender_name or sender_address, 'utf-8').encode(), sender_address))
+    model = apps.get_model(staff_model.replace('__', '.', 1)) if staff_model else get_user_model()
+    users = queryset_util.filter(
+        model.objects, conf['receiver_filters'], context=variables,
+    ).values_list('username', 'email')
+    msg['To'] = ','.join(f'{name} <{addr}>' for name, addr in users)
+    client.sendmail(from_addr=sender_address, to_addrs=[addr for _, addr in users], msg=msg.as_string())
+    client.quit()
 
 
 class Variable:
