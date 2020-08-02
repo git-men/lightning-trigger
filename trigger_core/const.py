@@ -77,6 +77,8 @@ COMPARE_OPERATOR = {
     '<': operator.lt,
     '<=': operator.le,
     'contains': operator.contains,
+    'icontains': lambda a, b: b.lower() in a.lower(),
+    'between': lambda n, arr: arr[0] < n < arr[-1],
     'in': lambda a, b: a in b,
     'startswith': lambda a, b: a.startswith(b),
     'endswith': lambda a, b: a.endswith(b),
