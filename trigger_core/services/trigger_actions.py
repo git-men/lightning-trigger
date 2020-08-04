@@ -75,6 +75,8 @@ def send_email(conf, variables):
     users = queryset_util.filter(
         model.objects, conf['receiver_filters'], context=variables,
     ).values_list(staff_username or staff_email, staff_email)
+    if not users:
+        return
     msg['To'] = ','.join(f'{name} <{addr}>' for name, addr in users)
     client.sendmail(from_addr=sender_address, to_addrs=[addr for _, addr in users], msg=msg.as_string())
     client.quit()
