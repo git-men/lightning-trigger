@@ -1,6 +1,7 @@
 import logging
 import uuid
 
+from api_basebone.export.specs import FieldType
 from . import const
 
 from django.db import models
@@ -34,6 +35,19 @@ class Trigger(models.Model):
     class Meta:
         verbose_name = '触发器'
         verbose_name_plural = '触发器'
+
+    class GMeta:
+        annotated_fields = {
+            'enable': {
+                'display_name': '启用',
+                'type': FieldType.BOOL,
+                'annotation': models.Case(
+                    models.When(disable=False, then=models.Value(True)),
+                    models.When(disable=True, then=models.Value(False)),
+                    output_field=models.CharField(),
+                ),
+            }
+        }
 
 """
 class TriggerCondition(models.Model):
