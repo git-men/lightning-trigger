@@ -56,7 +56,7 @@ def send_email(conf, variables):
         'sender_address', 'sender_name', 'staff_model', 'staff_username', 'staff_email'
     ]
     Client = {'SMTP': smtplib.SMTP, 'SMTP_SSL': smtplib.SMTP_SSL}.get(protocol, None)
-    if not all([Client, host, staff_model, staff_username, staff_email]):
+    if not all([Client, host, staff_model, staff_email]):
         return
 
     client = Client(host, port or 0)
@@ -74,7 +74,9 @@ def send_email(conf, variables):
     model = apps.get_model(staff_model.replace('__', '.', 1)) if staff_model else get_user_model()
     users = queryset_util.filter(
         model.objects, conf['receiver_filters'], context=variables,
-    ).values_list(staff_username, staff_email)
+    ).values_list(staff_username or staff_email, staff_email)
+    if not users:
+        return
     msg['To'] = ','.join(f'{name} <{addr}>' for name, addr in users)
     client.sendmail(from_addr=sender_address, to_addrs=[addr for _, addr in users], msg=msg.as_string())
     client.quit()
