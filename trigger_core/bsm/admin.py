@@ -3,7 +3,7 @@ from trigger_core.models import Trigger
 
 @register
 class GroupAdmin(BSMAdmin):
-    display = ['name', 'event', 'disable', 'description']
+    display = ['name', 'event', 'enable', 'description']
     modal_form = False
     inline_actions = ['edit', 'delete']
 
