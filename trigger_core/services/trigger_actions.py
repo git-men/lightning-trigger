@@ -50,17 +50,15 @@ def delete(conf, variables):
 @reg_action
 def send_email(conf, variables):
     # 批量查找数据库
-    protocol, host, port, tls, need_login, username, password, sender_address, sender_name, staff_model = site_setting[
+    protocol, host, port, tls, need_login, username, password, sender_address, sender_name, staff_model, staff_username, staff_email = site_setting[
         'mail_protocol', 'mail_host', 'mail_port',
         'start_tls', 'mail_need_login', 'mail_username', 'mail_password',
-        'sender_address', 'sender_name', 'staff_model',
+        'sender_address', 'sender_name', 'staff_model', 'staff_username', 'staff_email'
     ]
     Client = {'SMTP': smtplib.SMTP, 'SMTP_SSL': smtplib.SMTP_SSL}.get(protocol, None)
-    if Client is None:
+    if not all([Client, host, staff_model, staff_username, staff_email]):
         return
 
-    if not host:
-        return
     client = Client(host, port or 0)
 
     if tls:
@@ -70,13 +68,13 @@ def send_email(conf, variables):
         if username and password:
             client.login(username, password)
 
-    msg = MIMEText(conf['text_template'].format(**variables.__dict__), 'plain', 'utf-8')
+    msg = MIMEText(conf['text_template'].format(**variables.__dict__), conf['mime_type'], 'utf-8')
     msg['Subject'] = conf['subject_template'].format(**variables.__dict__)
     msg['From'] = formataddr((Header(sender_name or sender_address, 'utf-8').encode(), sender_address))
     model = apps.get_model(staff_model.replace('__', '.', 1)) if staff_model else get_user_model()
     users = queryset_util.filter(
         model.objects, conf['receiver_filters'], context=variables,
-    ).values_list('username', 'email')
+    ).values_list(staff_username, staff_email)
     msg['To'] = ','.join(f'{name} <{addr}>' for name, addr in users)
     client.sendmail(from_addr=sender_address, to_addrs=[addr for _, addr in users], msg=msg.as_string())
     client.quit()

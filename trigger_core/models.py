@@ -64,6 +64,9 @@ class TriggerCondition(models.Model):
 class TriggerAction(models.Model):
     '''触发器行为'''
 
+    MIME_TYPE_PLAIN = 'plain'
+    MIME_TYPE_HTML = 'html'
+
     trigger = models.ForeignKey(Trigger, models.CASCADE, verbose_name='trigger')
     action = models.CharField('条件类型', max_length=20, choices=const.TRIGGER_ACTION_CHOICES)
     # 创建记录, 更新记录, 删除记录
@@ -75,6 +78,7 @@ class TriggerAction(models.Model):
     subject_template = models.CharField('标题模板', max_length=100, default='')
     text_template = models.TextField('正文模板', default='')
     receiver_filters = JSONField('接收者的过滤条件', default=[], blank=True)
+    mime_type = models.CharField('格式', max_length=20, choices=[[MIME_TYPE_PLAIN, '纯文本'], [MIME_TYPE_HTML, '富文本']], default=MIME_TYPE_PLAIN)
 
     class Meta:
         verbose_name = '触发器行为'
