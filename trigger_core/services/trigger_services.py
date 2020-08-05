@@ -1,6 +1,7 @@
 import logging
 import re
 import traceback
+from functools import reduce
 
 from api_basebone.core import exceptions
 
@@ -238,7 +239,7 @@ def getFilterValueFromInst(trigger_po: po.TriggerPO, field: str, old_inst, new_i
             error_code=exceptions.PARAMETER_FORMAT_ERROR,
             error_data=f'触发器不支持对象"{attr[0]}"',
         )
-    return getattr(inst, attr[1])
+    return reduce(getattr, attr[1:], inst)
 
 
 def run_trigger(request, trigger_po: po.TriggerActionPO, id, old_inst, new_inst):
