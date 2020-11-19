@@ -1,3 +1,4 @@
+import logging
 import smtplib
 from email.mime.text import MIMEText
 from email.header import Header
@@ -8,6 +9,9 @@ from django.contrib.auth import get_user_model
 from api_basebone.services.expresstion import resolve_expression
 from api_basebone.utils import queryset as queryset_util
 from bsm_config.settings import site_setting
+
+
+logger = logging.getLogger('bsm-trigger')
 
 
 def convert_fields(fields_config, variables):
@@ -48,16 +52,19 @@ def delete(conf, variables):
 
 
 @reg_action
-def send_email(conf, variables):
+def notify(conf, variables):
+    if not conf['email_enabled']:
+        return
     # 批量查找数据库
     protocol, host, port, tls, need_login, username, password, sender_address, sender_name, staff_model, staff_username, staff_email = site_setting[
         'mail_protocol', 'mail_host', 'mail_port',
         'start_tls', 'mail_need_login', 'mail_username', 'mail_password',
         'sender_address', 'sender_name', 'staff_model', 'staff_username', 'staff_email'
     ]
+    # 可以使用 django.core.mail.backends.smtp.EmailBackend
     Client = {'SMTP': smtplib.SMTP, 'SMTP_SSL': smtplib.SMTP_SSL}.get(protocol, None)
-    if not all([Client, host, staff_model, staff_email]):
-        return
+    if not all([Client, host, staff_model, staff_username, staff_email]):
+        logging.warning('未配置好发邮件所需的相关配置')
 
     client = Client(host, port or 0)
 
@@ -68,18 +75,27 @@ def send_email(conf, variables):
         if username and password:
             client.login(username, password)
 
-    msg = MIMEText(conf['text_template'].format(**variables.__dict__), conf['mime_type'], 'utf-8')
-    msg['Subject'] = conf['subject_template'].format(**variables.__dict__)
+    title = conf['title_template'].format(**variables.__dict__)
+    content = conf['content_template'].format(**variables.__dict__)
+    msg = MIMEText(content, conf['email_mime_type'], 'utf-8')
+    msg['Subject'] = title
     msg['From'] = formataddr((Header(sender_name or sender_address, 'utf-8').encode(), sender_address))
     model = apps.get_model(staff_model.replace('__', '.', 1)) if staff_model else get_user_model()
     users = queryset_util.filter(
         model.objects, conf['receiver_filters'], context=variables,
-    ).values_list(staff_username or staff_email, staff_email)
-    if not users:
+    ).values_list(staff_username, staff_email)
+    print(conf['receiver_filters'], users)
+    if not users.exists():
         return
     msg['To'] = ','.join(f'{name} <{addr}>' for name, addr in users)
     client.sendmail(from_addr=sender_address, to_addrs=[addr for _, addr in users], msg=msg.as_string())
     client.quit()
+
+    from notify.models import Notification
+    notification = Notification.objects.create(title=title, description=content)
+    recipients = get_user_model().objects.filter(username__in=[username for username, _ in users])
+    # 那些没有“重设密码”的用户也会收到邮件，但不会记录进去
+    notification.recipients.add(*recipients)
 
 
 class Variable:
