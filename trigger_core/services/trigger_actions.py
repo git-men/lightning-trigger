@@ -91,17 +91,6 @@ def notify(conf, variables):
     client.sendmail(from_addr=sender_address, to_addrs=[addr for _, addr in users], msg=msg.as_string())
     client.quit()
 
-    try:
-        from notify.models import Notification
-        # 依赖到db-tool的notify模块
-    except:
-        pass
-    else:
-        notification = Notification.objects.create(title=title, description=content)
-        recipients = get_user_model().objects.filter(username__in=[username for username, _ in users])
-        # 那些没有“重设密码”的用户也会收到邮件，但不会记录进去
-        notification.recipients.add(*recipients)
-
 
 class Variable:
     def __init__(self, id=None, old=None, new=None, user=None):
