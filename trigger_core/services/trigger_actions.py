@@ -9,6 +9,7 @@ from django.contrib.auth import get_user_model
 from api_basebone.services.expresstion import resolve_expression
 from api_basebone.utils import queryset as queryset_util
 from bsm_config.settings import site_setting
+from bsm_config.settings import site_setting
 
 
 logger = logging.getLogger('bsm-trigger')
@@ -98,6 +99,14 @@ class Variable:
         self.old = old
         self.new = new
         self.user = user
+        # 可使用配置staff的user作为user
+        staff_model, staff_username = site_setting['staff_model', 'staff_username']
+        print(77777, staff_model)
+        if staff_model and staff_username:
+            StaffModel = apps.get_model(staff_model.replace('__', '.', 1))
+            _user = StaffModel.objects.filter(**{staff_username: user.username}).first()
+            if _user:
+                self.user = _user
 
 
 def run_action(conf, **kwargs):
