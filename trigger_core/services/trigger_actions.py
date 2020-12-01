@@ -101,7 +101,6 @@ class Variable:
         self.user = user
         # 可使用配置staff的user作为user
         staff_model, staff_username = site_setting['staff_model', 'staff_username']
-        print(77777, staff_model)
         if staff_model and staff_username:
             StaffModel = apps.get_model(staff_model.replace('__', '.', 1))
             _user = StaffModel.objects.filter(**{staff_username: user.username}).first()
