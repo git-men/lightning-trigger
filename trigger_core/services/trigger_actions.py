@@ -93,6 +93,15 @@ def notify(conf, variables):
     client.quit()
 
 
+def scripting(conf, variables):
+    """执行脚本
+    """
+    model = apps.get_model(conf['app'], conf['model'])
+    # 找到脚本
+
+    # 执行脚本
+
+
 class Variable:
     def __init__(self, id=None, old=None, new=None, user=None):
         self.id = id
