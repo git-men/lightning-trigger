@@ -1,5 +1,6 @@
 import logging
 import smtplib
+import hashlib
 from email.mime.text import MIMEText
 from email.header import Header
 from email.utils import formataddr
@@ -10,6 +11,8 @@ from api_basebone.services.expresstion import resolve_expression
 from api_basebone.utils import queryset as queryset_util
 from bsm_config.settings import site_setting
 from bsm_config.settings import site_setting
+
+from trigger_core.services.script_action import  lightning_rt_trigger_scripts
 
 
 logger = logging.getLogger('bsm-trigger')
@@ -93,13 +96,46 @@ def notify(conf, variables):
     client.quit()
 
 
-def scripting(conf, variables):
+@reg_action
+def script(conf, variables):
     """执行脚本
     """
-    model = apps.get_model(conf['app'], conf['model'])
     # 找到脚本
+    slug = conf['slug']
+    script = conf.get('script', None)
+    if not script:
+        return
+    check_sum = hashlib.md5(script.encode('utf-8')).hexdigest()
+    script_name = f'{slug}_{check_sum}'
+    func = getattr(lightning_rt_trigger_scripts, script_name, None)
+    if not func:
+        func_name = f'trigger_action_{slug}'
+        head = f'def {func_name}(context):'
+        body = ('\n' + script.strip()).replace('\n', '\n' + ' ' * 4).replace('\t', ' ' * 4)
+        print(head + body)
+        exec(head + body)
+        func = locals().get(func_name, None)
+        if not func:
+            print('can not create function from script')
+            return
+        
+        # 先清理旧版本的模块方法
+        old_func = [f for f in dir(lightning_rt_trigger_scripts) if f.startswith(slug)]
+        for of in old_func:
+            delattr(lightning_rt_trigger_scripts, of)
+        
+        # 把新版本的方法植入
+        setattr(lightning_rt_trigger_scripts, script_name, func)
 
-    # 执行脚本
+    # 执行脚本 
+    try:
+        context = variables
+        if isinstance(variables, Variable):
+            context = variables.__dict__
+        return func(context)
+    except:
+        # TODO 执行可以有更多的选项，例如是否影响务事等。
+        raise
 
 
 class Variable:

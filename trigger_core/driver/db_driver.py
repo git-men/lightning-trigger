@@ -146,12 +146,13 @@ def save_trigger_action(trigger: Trigger, actions, is_create):
         action_model = TriggerAction()
         action_model.trigger = trigger
         action_model.action = action['action']
-        action_model.app = action['app']
-        action_model.model = action['model']
+        action_model.app = action.get('app', '')
+        action_model.model = action.get('model', '')
+        action_model.script = action.get('script', '')
         if action_model.action not in const.TRIGGER_ACTIONS:
             raise exceptions.BusinessException(
                 error_code=exceptions.PARAMETER_FORMAT_ERROR,
-                error_data=f'\'operation\': {trigger.event} 不是合法的触发器行为',
+                error_data=f'\'operation\': {action_model.action} 不是合法的触发器行为',
             )
 
         if 'fields' in action:
