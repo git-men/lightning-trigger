@@ -243,6 +243,5 @@ def getFilterValueFromInst(trigger_po: po.TriggerPO, field: str, old_inst, new_i
 
 
 def run_trigger(request, trigger_po: po.TriggerActionPO, id, old_inst, new_inst):
-    print(f'run_trigger:{id}')
     for action in trigger_po.triggeraction:
-        run_action(action.config, id=id, old=old_inst, new=new_inst, user=request.user)
+        run_action(action.config, id=id, old=old_inst, new=new_inst, user=request.user, request=request)

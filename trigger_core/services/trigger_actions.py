@@ -9,6 +9,8 @@ from django.contrib.auth import get_user_model
 
 from api_basebone.services.expresstion import resolve_expression
 from api_basebone.utils import queryset as queryset_util
+from api_basebone.sandbox.functions import context as context_functions
+from api_basebone.sandbox.functions import __all__
 from bsm_config.settings import site_setting
 from bsm_config.settings import site_setting
 
@@ -111,6 +113,7 @@ def script(conf, variables):
     if not func:
         func_name = f'trigger_action_{slug}'
         head = f'def {func_name}(context):'
+        head += '\n    from api_basebone.sandbox.functions import %s' % ', '.join(__all__)
         body = ('\n' + script.strip()).replace('\n', '\n' + ' ' * 4).replace('\t', ' ' * 4)
         print(head + body)
         exec(head + body)
@@ -130,8 +133,11 @@ def script(conf, variables):
     # 执行脚本 
     try:
         context = variables
+        if not isinstance(variables, dict):
+            context = {'variables': variables}
         if isinstance(variables, Variable):
             context = variables.__dict__
+        # context.update(context_functions)
         return func(context)
     except:
         # TODO 执行可以有更多的选项，例如是否影响务事等。
@@ -139,11 +145,12 @@ def script(conf, variables):
 
 
 class Variable:
-    def __init__(self, id=None, old=None, new=None, user=None):
+    def __init__(self, id=None, old=None, new=None, user=None, request=None):
         self.id = id
         self.old = old
         self.new = new
         self.user = user
+        self.request = request
         # 可使用配置staff的user作为user
         staff_model, staff_username = site_setting['staff_model', 'staff_username']
         if staff_model and staff_username:
@@ -151,6 +158,9 @@ class Variable:
             _user = StaffModel.objects.filter(**{staff_username: user.username}).first()
             if _user:
                 self.user = _user
+    
+    def __str__(self):
+        return f'id: {self.id}, old: {self.old}, new: {self.new}'
 
 
 def run_action(conf, **kwargs):
