@@ -11,6 +11,7 @@ from api_basebone.services.expresstion import resolve_expression
 from api_basebone.utils import queryset as queryset_util
 from api_basebone.sandbox.functions import context as context_functions
 from api_basebone.sandbox.functions import __all__
+from api_basebone.drf.response import get_or_create_logger
 from bsm_config.settings import site_setting
 from bsm_config.settings import site_setting
 
@@ -138,6 +139,7 @@ def script(conf, variables):
         if isinstance(variables, Variable):
             context = variables.__dict__
         # context.update(context_functions)
+        context.update({"logger": get_or_create_logger(slug, 'trigger')})
         return func(context)
     except:
         # TODO 执行可以有更多的选项，例如是否影响务事等。
