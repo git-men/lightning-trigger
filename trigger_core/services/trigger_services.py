@@ -98,10 +98,11 @@ def handle_triggers(
         print(
             f'事件 {event}.{slug}:{kwargs} 的触发器有异常:' + str(e) + "," + traceback.format_exc()
         )
-        raise exceptions.BusinessException(
-            error_code=exceptions.TRIGGER_ERROR,
-            error_data=f'事件 {event}.{slug}:{kwargs} 的触发器有异常',
-        )
+        raise
+        # raise exceptions.BusinessException(
+        #     error_code=exceptions.TRIGGER_ERROR,
+        #     error_data=f'事件 {event}.{slug}:{kwargs} 的触发器有异常',
+        # )
 
 
 def is_container_config(filter_config: dict):
